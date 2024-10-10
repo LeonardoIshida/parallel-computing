@@ -11,47 +11,41 @@ int min(int a, int b) {
 }
 
 void aplicar_filtro(int **imagem, float **filtro, int **resultado, int N, int M) {
-    int metade_filtro = M / 2;
-    float soma = 0.0;
-    #pragma omp parallel num_threads(8)
-    {
-        #pragma omp single
-        {
-            for (int p = 0; p < N; p += 4) {
-                int end = (p + 4 > N) ? N : p + 4;
-                #pragma omp task firstprivate(p, end) shared(imagem, filtro, resultado, N, M)
-                {
-                    #pragma omp parallel for collapse(2)
-                    for (int i = p+metade_filtro; i < end+metade_filtro; i++) {
-                        for (int j = metade_filtro; j < N+metade_filtro; j++) {
+    int raio_de_deslocamento = M / 2;
+    int mais_claro = 0;
+    int mais_escuro = 255;
+    omp_set_nested(1);
 
-                            // collapse no for externo e simd no interno
-                            // for simd colapsado reduction
-                            #pragma omp simd reduction(+:soma)
-                            for (int k = -metade_filtro; k <= metade_filtro; k++) {
-                                for (int l = -metade_filtro; l <= metade_filtro; l++) {
-                                    int x = i + k;
-                                    int y = j + l;
+    #pragma omp parallel for collapse(2) schedule(dynamic) reduction(max: mais_claro) reduction(min: mais_escuro) num_threads(8)
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            float soma = 0.0;
 
-                                    // simd com if pode dar pau
-                                    soma += imagem[x][y] * filtro[k + metade_filtro][l + metade_filtro];
-                                    // if (x >= 0 && x < N && y >= 0 && y < N) {
-                                    // }
-                                }
-                            }
+            // #pragma omp reduction(+: soma)
+            for (int fi = 0; fi < M; fi++) {
+                for (int fj = 0; fj < M; fj++) {
+                    int oi = i - raio_de_deslocamento + fi;
+                    int oj = j - raio_de_deslocamento + fj;
 
-                            if (soma > 255)
-                                resultado[i][j] = 255;
-                            else
-                                resultado[i][j] = (int)soma;
-
-                            soma = 0.0;
-                        }
+                    if (oi >= 0 && oi < N && oj >= 0 && oj < N) {
+                        soma += imagem[oi][oj] * filtro[fi][fj];
                     }
                 }
             }
+
+            resultado[i][j] = (int)soma;
+
+            // Update local min and max values
+            mais_claro = max(mais_claro, resultado[i][j]);
+            mais_escuro = min(mais_escuro, resultado[i][j]);
         }
     }
+
+    if (mais_claro > 255) {
+        mais_claro = 255;
+    }
+
+    printf("%d %d", mais_claro, mais_escuro);
 }
 
 void gerar_filtro(float **filtro, int M) {
@@ -63,34 +57,29 @@ void gerar_filtro(float **filtro, int M) {
 }
 
 void gerar_imagem(int **imagem, int N, int M) {
-    for (int i = M/2; i < N+M/2; i++) {
-        for (int j = M/2; j < N+M/2; j++) {
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
             imagem[i][j] = rand() % 256;
         }
     }
 }
 
-int main()
-{
-    int N, M;
+int main() {
+    int N, M, S;
     int **imagem = NULL;
     int **resultado = NULL;
-    int S;
     float **filtro = NULL;
 
     scanf("%d %d %d", &N, &M, &S);
     srand(S);
 
-    imagem = (int **)calloc(N+M, sizeof(int *));
+    imagem = (int **)calloc(N, sizeof(int *));
     resultado = (int **)calloc(N, sizeof(int *));
     filtro = (float **)calloc(M, sizeof(float *));
 
     for (int i = 0; i < N; i++) {
+        imagem[i] = (int *)calloc(N, sizeof(int));
         resultado[i] = (int *)calloc(N, sizeof(int));
-    }
-
-    for (int i = 0; i < N+M; i++) {
-        imagem[i] = (int *)calloc(N+M, sizeof(int));
     }
 
     for (int i = 0; i < M; i++) {
@@ -99,39 +88,13 @@ int main()
 
     gerar_imagem(imagem, N, M);
     gerar_filtro(filtro, M);
-    // aplicar_filtro(imagem, filtro, resultado, N, M);
+    aplicar_filtro(imagem, filtro, resultado, N, M);
 
-    for (int i = 0; i < N+M; i++) {
-        for (int j = 0; j < N+M; j++) {
-            printf("%d ", imagem[i][j]);
-        }
-        printf("\n");
-    }
-
-    printf("\n");
-
-    for (int i = 0; i < M; i++) {
-        for (int j = 0; j < M; j++) {
-            printf("%.2f ", filtro[i][j]);
-        }
-        printf("\n");
-    }
-
-    printf("\n");
-
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            printf("%d ", resultado[i][j]);
-        }
-        printf("\n");
-    }
-
-
+    // Liberar memória
     for (int i = 0; i < N; i++) {
         free(imagem[i]);
         free(resultado[i]);
     }
-
     for (int i = 0; i < M; i++) {
         free(filtro[i]);
     }
