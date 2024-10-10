@@ -69,8 +69,8 @@ void gerar_filtro(float **filtro, int M) {
 }
 
 void gerar_imagem(int **imagem, int N, int M) {
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
+    for (int i = M/2; i < N+M/2; i++) {
+        for (int j = M/2; j < N+M/2; j++) {
             imagem[i][j] = rand() % 256;
         }
     }
@@ -81,13 +81,15 @@ int main() {
     scanf("%d %d %d", &N, &M, &S);
     srand(S);
 
-    int **imagem = (int **)calloc(N, sizeof(int *));
+    int **imagem = (int **)calloc(N+M-1, sizeof(int *));
     int **resultado = (int **)calloc(N, sizeof(int *));
     float **filtro = (float **)calloc(M, sizeof(float *));
 
     for (int i = 0; i < N; i++) {
-        imagem[i] = (int *)calloc(N, sizeof(int));
         resultado[i] = (int *)calloc(N, sizeof(int));
+    }
+    for (int i = 0; i < N+M-1; i++) {
+        imagem[i] = (int *)calloc(N+M-1, sizeof(int));
     }
 
     for (int i = 0; i < M; i++) {
@@ -115,18 +117,19 @@ int main() {
     }
     printf("%d %d", max, min);
 
-    // Liberar memória
-    for (int i = 0; i < N; i++) {
-        free(imagem[i]);
-        free(resultado[i]);
-    }
-    for (int i = 0; i < M; i++) {
-        free(filtro[i]);
-    }
 
-    free(imagem);
-    free(resultado);
-    free(filtro);
+    // Liberar memória
+    // for (int i = 0; i < N; i++) {
+    //     free(imagem[i]);
+    //     free(resultado[i]);
+    // }
+    // for (int i = 0; i < M; i++) {
+    //     free(filtro[i]);
+    // }
+
+    // free(imagem);
+    // free(resultado);
+    // free(filtro);
 
     return 0;
 }
