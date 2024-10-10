@@ -14,31 +14,29 @@ void aplicar_filtro(int **imagem, float **filtro, int **resultado, int N, int M)
     int raio_de_deslocamento = M / 2;
     // omp_set_nested(1);
 
-    #pragma omp parallel for collapse(2) schedule(static) num_threads(8)
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
+    #pragma omp parallel for collapse(2) schedule(dynamic) num_threads(8)
+    for (int i = M/2; i < N+M/2; i++) {
+        for (int j = M/2; j < N+M/2; j++) {
             float soma = 0.0;
 
-            #pragma omp reduction(+: soma)
+            #pragma omp simd reduction(+:soma)
             for (int fi = 0; fi < M; fi++) {
                 for (int fj = 0; fj < M; fj++) {
                     int oi = i - raio_de_deslocamento + fi;
                     int oj = j - raio_de_deslocamento + fj;
 
-                    if (oi >= 0 && oi < N && oj >= 0 && oj < N) {
-                        soma += imagem[oi][oj] * filtro[fi][fj];
-                    }
+                    soma += imagem[oi][oj] * filtro[fi][fj];
                 }
             }
 
-            resultado[i][j] = min(255, (int)soma);
+            resultado[i-M/2][j-M/2] = min(255, (int)soma);
         }
     }
 }
 
-int calcula_max(int** conv, int N) {
+int calcula_max(int** conv, int N, int M) {
     int maximo = -1;
-    #pragma omp parallel for schedule(static) collapse(2) reduction(max: maximo) num_threads(4)
+    #pragma omp parallel for schedule(dynamic) collapse(2) reduction(max: maximo) num_threads(4)
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
             maximo = max(maximo, conv[i][j]);
@@ -48,9 +46,9 @@ int calcula_max(int** conv, int N) {
     return maximo;
 }
 
-int calcula_min(int** conv, int N) {
+int calcula_min(int** conv, int N, int M) {
     int minimo = 256;
-    #pragma omp parallel for schedule(static) collapse(2) reduction(min: minimo) num_threads(4)
+    #pragma omp parallel for schedule(dynamic) collapse(2) reduction(min: minimo) num_threads(4)
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
             minimo = min(minimo, conv[i][j]);
@@ -81,7 +79,7 @@ int main() {
     scanf("%d %d %d", &N, &M, &S);
     srand(S);
 
-    int **imagem = (int **)calloc(N+M-1, sizeof(int *));
+    int **imagem = (int **)calloc(N+M, sizeof(int *));
     int **resultado = (int **)calloc(N, sizeof(int *));
     float **filtro = (float **)calloc(M, sizeof(float *));
 
@@ -89,7 +87,7 @@ int main() {
         resultado[i] = (int *)calloc(N, sizeof(int));
     }
     for (int i = 0; i < N+M-1; i++) {
-        imagem[i] = (int *)calloc(N+M-1, sizeof(int));
+        imagem[i] = (int *)calloc(N+M, sizeof(int));
     }
 
     for (int i = 0; i < M; i++) {
@@ -107,11 +105,11 @@ int main() {
         {
             #pragma omp task
             {
-                max = calcula_max(resultado, N);
+                max = calcula_max(resultado, N, M);
             }
             #pragma omp task
             {
-                min = calcula_min(resultado, N);
+                min = calcula_min(resultado, N, M);
             }
         }
     }
