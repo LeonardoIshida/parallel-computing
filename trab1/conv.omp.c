@@ -12,20 +12,16 @@ int min(int a, int b) {
 
 void aplicar_filtro(int **imagem, float **filtro, int **resultado, int N, int M) {
     int raio_de_deslocamento = M / 2;
-    // omp_set_nested(1);
 
-    #pragma omp parallel for collapse(2) schedule(dynamic) num_threads(8)
-    for (int i = M/2; i < N+M/2; i++) {
-        for (int j = M/2; j < N+M/2; j++) {
+    #pragma omp parallel for collapse(2) schedule(guided) num_threads(8)
+    for (int i = raio_de_deslocamento; i < N+raio_de_deslocamento; i++) {
+        for (int j = raio_de_deslocamento; j < N+raio_de_deslocamento; j++) {
             float soma = 0.0;
 
             #pragma omp simd reduction(+:soma)
             for (int fi = 0; fi < M; fi++) {
                 for (int fj = 0; fj < M; fj++) {
-                    int oi = i - raio_de_deslocamento + fi;
-                    int oj = j - raio_de_deslocamento + fj;
-
-                    soma += imagem[oi][oj] * filtro[fi][fj];
+                    soma += imagem[i-raio_de_deslocamento+fi][j-raio_de_deslocamento+fj] * filtro[fi][fj];
                 }
             }
 
@@ -34,28 +30,23 @@ void aplicar_filtro(int **imagem, float **filtro, int **resultado, int N, int M)
     }
 }
 
-int calcula_max(int** conv, int N, int M) {
+void calcula_max_min(int** conv, int N, int *max_global, int *min_global) {
     int maximo = -1;
-    #pragma omp parallel for schedule(dynamic) collapse(2) reduction(max: maximo) num_threads(4)
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            maximo = max(maximo, conv[i][j]);
-        }
-    }
-
-    return maximo;
-}
-
-int calcula_min(int** conv, int N, int M) {
     int minimo = 256;
-    #pragma omp parallel for schedule(dynamic) collapse(2) reduction(min: minimo) num_threads(4)
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            minimo = min(minimo, conv[i][j]);
+
+    #pragma omp parallel num_threads(8)
+    {
+        #pragma omp for schedule(guided) collapse(2) reduction(max: maximo) reduction(min: minimo) nowait
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                minimo = min(minimo, conv[i][j]);
+                maximo = max(maximo, conv[i][j]);
+            }
         }
     }
 
-    return minimo;
+    *max_global = maximo;
+    *min_global = minimo;
 }
 
 void gerar_filtro(float **filtro, int M) {
@@ -82,52 +73,81 @@ int main() {
     int **imagem = (int **)calloc(N+M, sizeof(int *));
     int **resultado = (int **)calloc(N, sizeof(int *));
     float **filtro = (float **)calloc(M, sizeof(float *));
-
-    for (int i = 0; i < N; i++) {
-        resultado[i] = (int *)calloc(N, sizeof(int));
-    }
-    for (int i = 0; i < N+M-1; i++) {
-        imagem[i] = (int *)calloc(N+M, sizeof(int));
-    }
-
-    for (int i = 0; i < M; i++) {
-        filtro[i] = (float *)calloc(M, sizeof(float));
-    }
-
-    gerar_imagem(imagem, N, M);
-    gerar_filtro(filtro, M);
-    aplicar_filtro(imagem, filtro, resultado, N, M);
     int max, min;
 
-    #pragma omp parallel num_threads(2)
+    #pragma omp prallel num_threads(8)
     {
-        #pragma omp single
+        // as proximas 3 tasks alocam memoria para as matrizes
+        #pragma omp task
         {
-            #pragma omp task
-            {
-                max = calcula_max(resultado, N, M);
-            }
-            #pragma omp task
-            {
-                min = calcula_min(resultado, N, M);
+            for (int i = 0; i < N; i++) {
+                resultado[i] = (int *)calloc(N, sizeof(int));
             }
         }
+        #pragma omp task
+        {
+            for (int i = 0; i < N+M-1; i++) {
+                imagem[i] = (int *)calloc(N+M-1, sizeof(int));
+            }
+        }
+        #pragma omp task
+        {
+            for (int i = 0; i < M; i++) {
+                filtro[i] = (float *)calloc(M, sizeof(float));
+            }
+        }
+
+        // task para gerar a imagem com numeros pseudoaleatorios
+        #pragma omp task depend(out: imagem)
+        {
+            gerar_imagem(imagem, N, M);
+        }
+
+        // task para gerar o filtro com numeros pseudoaleatorios
+        #pragma omp task depend(in: imagem) depend(out: filtro)
+        {
+            gerar_filtro(filtro, M);
+        }
+
+        // task para construir a matriz de convolucao
+        #pragma omp task depend(in: filtro) depend(out: resultado)
+        {
+            aplicar_filtro(imagem, filtro, resultado, N, M);
+        }
+
+        // task para encontrar o maior e menor valor da matriz de convolucao
+        #pragma omp task shared(max, min) depend(in: resultado)
+        {
+            calcula_max_min(resultado, N, &max, &min);
+        }
+
+        // as proximas 3 tasks desalocam memoria
+        #pragma omp task depend(out: max, min)
+        {
+            for (int i = 0; i < N; i++) {
+                free(resultado[i]);
+            }
+            free(resultado);
+        }
+        #pragma omp task depend(out: max, min)
+        {
+            for (int i = 0; i < N+M-1; i++) {
+                free(imagem[i]);
+            }
+            free(imagem);
+        }
+        #pragma omp task depend(out: max, min)
+        {
+            for (int i = 0; i < M; i++) {
+                free(filtro[i]);
+            }
+            free(filtro);
+        }
+
+        // impressao do maior e menor valor da matriz de convolucao
+        #pragma taskwait
+        printf("%d %d", max, min);
     }
-    printf("%d %d", max, min);
-
-
-    // Liberar memória
-    // for (int i = 0; i < N; i++) {
-    //     free(imagem[i]);
-    //     free(resultado[i]);
-    // }
-    // for (int i = 0; i < M; i++) {
-    //     free(filtro[i]);
-    // }
-
-    // free(imagem);
-    // free(resultado);
-    // free(filtro);
 
     return 0;
 }
