@@ -2,11 +2,11 @@
 // TRABALHO PRÁTICO 1
 
 // Alunos:
-// Enzo Yassuo Hirano Harada -
-// Jõao Pedro Hamata -
+// Enzo Yassuo Hirano Harada - 13781841
+// Jõao Pedro Hamata - 13672001
 // Leonardo Ishida - 12873424
 // Miguel Bragante Henriques - 13671894
-// Victor Hugo Trigolo Amaral -
+// Victor Hugo Trigolo Amaral - 12688487
 
 #include <omp.h>
 #include <stdio.h>
