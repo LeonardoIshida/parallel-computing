@@ -1,3 +1,13 @@
+// SSC0903 - COMPUTAÇÃO DE ALTO DESEMPENHO
+// TRABALHO PRÁTICO 1
+
+// Alunos:
+// Enzo Yassuo Hirano Harada -
+// Jõao Pedro Hamata -
+// Leonardo Ishida - 12873424
+// Miguel Bragante Henriques - 13671894
+// Victor Hugo Trigolo Amaral -
+
 #include <omp.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,42 +85,26 @@ int main() {
     float **filtro = (float **)calloc(M, sizeof(float *));
     int max, min;
 
+    // alocacao de memoria para as matrizes
+    for (int i = 0; i < N; i++) {
+        resultado[i] = (int *)calloc(N, sizeof(int));
+    }
+
+    for (int i = 0; i < N+M-1; i++) {
+        imagem[i] = (int *)calloc(N+M-1, sizeof(int));
+    }
+
+    for (int i = 0; i < M; i++) {
+        filtro[i] = (float *)calloc(M, sizeof(float));
+    }
+
+    gerar_imagem(imagem, N, M);
+    gerar_filtro(filtro, M);
+
     #pragma omp prallel num_threads(8)
     {
-        // as proximas 3 tasks alocam memoria para as matrizes
-        #pragma omp task
-        {
-            for (int i = 0; i < N; i++) {
-                resultado[i] = (int *)calloc(N, sizeof(int));
-            }
-        }
-        #pragma omp task
-        {
-            for (int i = 0; i < N+M-1; i++) {
-                imagem[i] = (int *)calloc(N+M-1, sizeof(int));
-            }
-        }
-        #pragma omp task
-        {
-            for (int i = 0; i < M; i++) {
-                filtro[i] = (float *)calloc(M, sizeof(float));
-            }
-        }
-
-        // task para gerar a imagem com numeros pseudoaleatorios
-        #pragma omp task depend(out: imagem)
-        {
-            gerar_imagem(imagem, N, M);
-        }
-
-        // task para gerar o filtro com numeros pseudoaleatorios
-        #pragma omp task depend(in: imagem) depend(out: filtro)
-        {
-            gerar_filtro(filtro, M);
-        }
-
         // task para construir a matriz de convolucao
-        #pragma omp task depend(in: filtro) depend(out: resultado)
+        #pragma omp task depend(out: resultado)
         {
             aplicar_filtro(imagem, filtro, resultado, N, M);
         }
