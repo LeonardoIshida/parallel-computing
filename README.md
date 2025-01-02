@@ -20,6 +20,11 @@
 
 This repository showcases two university projects designed to explore and demonstrate key concepts in parallel computing design and implementation. These projects delve into various aspects of distributed computing, from schema design to code implementation and in depth research. They provide practical experience in working with real-world scenarios and highlight the importance of efficient parallel coding.
 
+### 🤝 Contributors
+- https://github.com/AmaralVh
+- https://github.com/IsaacHaRR
+- https://github.com/buzzo-cancri
+
 ### Project 1 - Parallel Image Convolution
 
 **Project Description:**
