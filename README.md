@@ -1,5 +1,3 @@
-![image](https://github.com/user-attachments/assets/dfcfe8d0-6086-4a46-9f10-619acd5a5196)<!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
-<a name="readme-top"></a>
 <!--
 *** Thanks for checking out the Best-README-Template. If you have a suggestion
 *** that would make this better, please fork the repo and create a pull request
@@ -12,8 +10,7 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-      <img src="https://store.hp.com/app/assets/images/uploads/prod/how-to-set-up-raid-windows-10-pc-hero1589981797002912.jpg" width="400" />
-  </a>
+      <img width="400" src="https://upload.wikimedia.org/wikipedia/commons/e/e5/Nanoscience_High-Performance_Computing_Facility.jpg" alt="logo"/>
   <h1 align="center">Parallel computing</h1>
 </div>
 <br>
