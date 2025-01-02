@@ -22,8 +22,9 @@ This repository showcases two university projects designed to explore and demons
 
 ### 🤝 Contributors
 - https://github.com/AmaralVh
-- https://github.com/IsaacHaRR
-- https://github.com/buzzo-cancri
+- https://github.com/Ensuo
+- https://github.com/MiguelHenri
+- https://github.com/jphamata
 
 ### Project 1 - Parallel Image Convolution
 
