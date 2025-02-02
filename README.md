@@ -21,10 +21,10 @@
 This repository showcases two university projects designed to explore and demonstrate key concepts in parallel computing design and implementation. These projects delve into various aspects of distributed computing, from schema design to code implementation and in depth research. They provide practical experience in working with real-world scenarios and highlight the importance of efficient parallel coding.
 
 ### 🤝 Contributors
-- https://github.com/AmaralVh
-- https://github.com/Ensuo
-- https://github.com/MiguelHenri
-- https://github.com/jphamata
+- [Victor Hugo T. Amaral](https://github.com/AmaralVh)
+- [Enzo Y. H.Harada](https://github.com/Ensuo)
+- [Miguel B. Henriques](https://github.com/MiguelHenri)
+- [João Pedro Hamata](https://github.com/jphamata)
 
 ### Project 1 - Parallel Image Convolution
 
